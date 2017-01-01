@@ -30,21 +30,15 @@ chargerate=3
 bobberx=63
 bobbery=127
 
-reeling=false
+reelspeed=0.4
 
 ripples={}
 numripples=0
 ripplecolors={7}
 ripplestartradius=2
 
-fishes={
- {
-  x=64,
-  y=64,
-  frame=5
- }
-}
-numfish=1
+fishes={}
+numfishes=0
 
 arrowangle=0
 minangle=-60
@@ -132,11 +126,27 @@ function doarrow()
  end
 end
 
+-- add a fish
+
+function addfish()
+ numfishes+=1
+ fish={
+  x=20+rnd(107),
+  y=20+rnd(80),
+  frame=5
+ }
+ fishes[numfishes]=fish
+ ripple(fish.x,fish.y,8,0.2)
+ ripple(fish.x,fish.y,14,0.3)
+ sfx(3,1)
+ sfx(-2,1)
+end
+
 -- update and draw all fish
 
 function dofish()
  for fish in all(fishes) do
-  spr(fish.frame,fish.x,fish.y)
+  spr(fish.frame,fish.x-4,fish.y-4)
   fish.frame+=0.1
   if fish.frame >= 8.9 then
    fish.frame=5
@@ -203,11 +213,11 @@ function docast()
  if abs(hyp) <= castspeed then
   bobberx=castx
   bobbery=casty
-  sfx(0,1)
-  sfx(-2,1)
   bob()
   ripple(castx,casty,8,0.2)
   ripple(castx,casty,14,0.3)
+  sfx(0,1)
+  sfx(-2,1)
   return
  end
  
@@ -221,7 +231,7 @@ function docast()
 end
 
 function reel()
-
+  
 end
 
 function bob()
@@ -258,7 +268,7 @@ function dobob()
   
   if bobframe <= 1 then
    bobframe = 2
-   state=states.waiting
+   state=states.reeling
   end
  end
 end
@@ -283,14 +293,6 @@ function _draw()
    
    doripples()
    
-   -- draw line
-   
-   line(63,127,bobberx,bobbery+boboffset,7)
-   
-   -- draw bobber
-   
-   spr(bobframe,bobberx-4,bobbery-4+boboffset)
-   
    -- charge
    
    if btn(2) and not (state == states.charging) then
@@ -299,17 +301,32 @@ function _draw()
    
    -- reel
    
-   if btn(3) and not reeling then
+   if btn(3) and state == state.reeling then
     reel()
    end
    
+   -- DEBUG: Add a fish
+
+   if btnp(4) then
+    addfish()
+   end
+
    -- update stuff
    
    docast()
    docharge()
    dobob()
    
-   if not (state == states.casting) then
+  -- draw bobber and line
+  
+  if state > states.charging then 
+    spr(bobframe,bobberx-4,bobbery-4+boboffset)
+    line(63,127,bobberx,bobbery+boboffset,7)
+  end
+
+  -- draw arrow
+
+   if (state == states.charging) or (state == states.waiting) then
     doarrow()
    end
  end
@@ -484,7 +501,7 @@ __sfx__
 000100000c5500f550105501255015550195501e5501d550085000b5000d50011500135001550017500195001b5001e5001f50022500235002450025500265002750000000000000000000000000000000000000
 000401002101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013
 0004000002050030500405005050060500705008050090500a0500b0500c0500d0500e0500f050100501105012050130501405015050160501705018050190501a0501b0501c0501d0501e0501f0502005021050
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000300000355106551095510c55101501065010750107501085010950100501005010050100501005010050100501005010050100501005010050100501005010050100501005010050100501005010050100501
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

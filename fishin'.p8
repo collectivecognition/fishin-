@@ -1,22 +1,33 @@
 pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
+-- todo
+-- state machine
+-- bounce off sides
+
 pi=3.1415926535897
+
+states={
+  title=0,
+  waiting=1,
+  charging=2,
+  casting=3,
+  bobbing=4,
+  reeling=5
+}
+state=states.title
 
 bobframe=1
 bobdir=0
 boboffset=0
 bobspeed=0.6
-bobbing = false
 
 castx=20
 casty=20
 castspeed=5
-casting=false
 castdistance=0
 maxcastdistance=100
 chargerate=3
-charging=false
 bobberx=63
 bobbery=127
 
@@ -44,21 +55,19 @@ arrowspeed=3
 -- charge cast
 
 function charge()
- charging=true
+ state=states.charging
  castdistance=0
  sfx(2,2)
 end
 
 function docharge()
- if not charging then
+ if not (state == states.charging) then
   return
  end
  
  castdistance+=chargerate
  
  if not btn(2) or castdistance > maxcastdistance then
-  charging=false
-  
   a=-arrowangle-90
   x=63+cos(a/360)*castdistance
   y=127-sin(a/360)*castdistance
@@ -176,14 +185,14 @@ function cast(x, y)
  bobframe=1
  castx=x
  casty=y
- casting=true
+ state=states.casting
  sfx(1,0)
 end
 
 -- animate cast
 
 function docast()
- if casting == false then
+ if not (state == states.casting) then
   sfx(-1,0)
   return
  end
@@ -193,7 +202,6 @@ function docast()
  hyp=sqrt(dirx*dirx+diry*diry)
  
  if abs(hyp) <= castspeed then
-  casting=false
   bobberx=castx
   bobbery=casty
   sfx(0,1)
@@ -220,12 +228,12 @@ end
 function bob()
  boboffset=0
  bobframe=1
- bobbing=true
+ state=states.bobbing
  bobdir=1
 end
 
 function dobob()
- if not bobbing then
+ if not (state == states.bobbing) then
   return
  end
  
@@ -251,7 +259,7 @@ function dobob()
   
   if bobframe <= 1 then
    bobframe = 2
-   bobbing = false 
+   state=states.waiting
   end
  end
 end
@@ -277,7 +285,7 @@ function _draw()
  
  -- charge
  
- if btn(2) and not charging then
+ if btn(2) and not (state == states.charging) then
   charge()
  end
  
@@ -293,16 +301,16 @@ function _draw()
  docharge()
  dobob()
  
- if not casting then
+ if not (state == states.casting) then
   doarrow()
  end
 end
 __gfx__
 0000000000088000000000000000000000000000000ddd00000ddd00000ddd00000ddd0000000000000000000000000000000000000000000000000000000000
-00000000007777000008800000000000000000000005d5000005d5000005d5000005d50000000000000000000000000000000000000000000000000000000000
-0000000007777770007777000008800000088000000ddd50005ddd50005ddd00005ddd5000000000000000000000000000000000000000000000000000000000
-0000000008888880077777700077770000777700005ddd00000ddd00000ddd50000ddd0000000000000000000000000000000000000000000000000000000000
-000000000088880008888880077777700dddddd0000ddd00000ddd00000ddd00000ddd0000000000000000000000000000000000000000000000000000000000
+0000000000777700000880000000000000000000000ddd00000ddd00000ddd00000ddd0000000000000000000000000000000000000000000000000000000000
+0000000007777770007777000008800000088000000dddd000ddddd000dddd0000ddddd000000000000000000000000000000000000000000000000000000000
+0000000008888880077777700077770000dddd0000dddd00000ddd00000dddd0000ddd0000000000000000000000000000000000000000000000000000000000
+0000000000888800088888800dddddd00dddddd0000ddd00000ddd00000ddd00000ddd0000000000000000000000000000000000000000000000000000000000
 000000000008800000dddd000dddddd00dddddd0000ddd000000dd00000ddd00000dd00000000000000000000000000000000000000000000000000000000000
 0000000000000000000dd00000dddd0000dddd00000dd0000000dd000000dd00000dd00000000000000000000000000000000000000000000000000000000000
 000000000000000000000000000dd000000dd00000dd0000000dd00000000dd00000dd0000000000000000000000000000000000000000000000000000000000

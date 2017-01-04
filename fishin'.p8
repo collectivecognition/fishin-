@@ -2,7 +2,11 @@ pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
 -- bounce off sides
+-- increase cast length
 -- title screen
+-- score
+-- hi score
+-- line break
 
 pi=3.1415926535897
 
@@ -30,7 +34,7 @@ chargerate=3
 bobberx=63
 bobbery=127
 
-reelspeed=0.4
+reelspeed=1.2
 
 ripples={}
 numripples=0
@@ -39,6 +43,16 @@ ripplestartradius=2
 
 fishes={}
 numfishes=0
+hookedfish={}
+hookeddest={}
+hookedspeed=0
+minhookedspeed=1
+maxhookedspeed=2
+hookedwaittimer=0
+minhookedwait=10
+maxhookedwait=80
+minhookedinc=5
+maxhookedinc=20
 
 arrowangle=0
 minangle=-60
@@ -146,6 +160,9 @@ end
 
 function dofish()
  for fish in all(fishes) do
+
+  -- draw fish
+
   spr(fish.frame,fish.x-4,fish.y-4)
   fish.frame+=0.1
   if fish.frame >= 8.9 then
@@ -198,6 +215,14 @@ function cast(x, y)
  sfx(1,0)
 end
 
+-- calculate distance
+
+function dist(x1,y1,x2,y2)
+ dirx=x1-x2
+ diry=y1-y2
+ return sqrt(dirx*dirx+diry*diry)
+end
+
 -- animate cast
 
 function docast()
@@ -231,7 +256,17 @@ function docast()
 end
 
 function reel()
-  
+ dirx=bobberx-63
+ diry=bobbery-127
+ hyp=sqrt(dirx*dirx+diry*diry)
+ dirx/=hyp
+ diry/=hyp
+ bobberx-=dirx*reelspeed
+ bobbery-=diry*reelspeed
+
+  if abs(hyp) <= reelspeed then
+   state=states.waiting
+  end
 end
 
 function bob()
@@ -268,8 +303,77 @@ function dobob()
   
   if bobframe <= 1 then
    bobframe = 2
-   state=states.reeling
+   hookfish()
   end
+ end
+end
+
+function hookfish()
+ if #fishes==0 then
+  state=states.waiting
+  return
+ end
+
+ for fish in all(fishes) do
+  d=dist(fish.x,fish.y,bobberx,bobbery)
+  if d<10 then
+   hookedfish=fish
+   hookeddest={x=fish.x,y=fish.y}
+   state=states.reeling
+   break
+  else
+   state=states.waiting
+  end
+ end
+end
+
+function dohookedfish()
+ if state != states.reeling then
+  return
+ end
+
+ dirx=hookeddest.x-hookedfish.x
+ diry=hookeddest.y-hookedfish.y
+ hyp=sqrt(dirx*dirx+diry*diry)
+ 
+ -- if at destination
+
+ if abs(hyp) <= hookedspeed then
+  hookedfish.x=hookeddest.x
+  hookedfish.y=hookeddest.y
+  bobberx=hookedfish.x
+  bobbery=hookedfish.y
+
+  if hookedwaittimer == 0 then
+    hookedwaittimer=minhookedwait+flr(rnd(maxhookedwait-minhookedwait))
+    hookedspeed=minhookedspeed+rnd(maxhookedspeed-minhookedspeed)
+    hookeddest={
+     x=20+rnd(87),
+     y=hookedfish.y-minhookedinc-rnd(maxhookedinc-minhookedinc)
+    }
+  else
+   hookedwaittimer-=1
+  end
+  return
+ end
+ 
+ -- move towards destination
+
+ dirx/=hyp
+ diry/=hyp
+ 
+ hookedfish.x+=dirx*hookedspeed
+ hookedfish.y+=diry*hookedspeed
+ bobberx=hookedfish.x
+ bobbery=hookedfish.y
+
+ -- fish went off screen
+
+ if hookedfish.y < -5 then
+  -- todo: delete fish
+  -- todo: play sound
+  hookedfish={}
+  state=states.waiting
  end
 end
 
@@ -301,7 +405,7 @@ function _draw()
    
    -- reel
    
-   if btn(3) and state == state.reeling then
+   if btn(3) and state == states.reeling then
     reel()
    end
    
@@ -316,6 +420,7 @@ function _draw()
    docast()
    docharge()
    dobob()
+   dohookedfish()
    
   -- draw bobber and line
   
@@ -499,10 +604,10 @@ __map__
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __sfx__
 000100000c5500f550105501255015550195501e5501d550085000b5000d50011500135001550017500195001b5001e5001f50022500235002450025500265002750000000000000000000000000000000000000
-000401002101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013
+010401002101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013210132101321013
 0004000002050030500405005050060500705008050090500a0500b0500c0500d0500e0500f050100501105012050130501405015050160501705018050190501a0501b0501c0501d0501e0501f0502005021050
 000300000355106551095510c55101501065010750107501085010950100501005010050100501005010050100501005010050100501005010050100501005010050100501005010050100501005010050100501
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+010300000a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a0550a055
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
